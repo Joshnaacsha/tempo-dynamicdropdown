@@ -3,13 +3,16 @@ const mapping = require("../config/mapping.json");
 
 exports.getTasks = (req, res) => {
   try {
-    const accountName = decodeURIComponent(
-      req.query.account ||
-      req.headers["x-tempo-account"] ||
-      req.body?.account?.name ||
-      req.body?.account ||
-      ""
-    );
+    let rawAccount = decodeURIComponent(
+  req.query.account ||
+  req.headers["x-tempo-account"] ||
+  req.body?.account?.name ||
+  req.body?.account ||
+  ""
+);
+
+// Extract only "R&D" from "R&D (PROJECT1)"
+const accountName = rawAccount.split(" (")[0];
 
     // HANDLE VERIFICATION TOKEN
     const verificationToken = req.query.tempoVerificationToken;
