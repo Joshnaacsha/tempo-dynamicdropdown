@@ -3,10 +3,18 @@ const mapping = require("../config/mapping.json");
 
 exports.getTasks = (req, res) => {
   try {
+    // 🔍 FULL DEBUG LOGS
+    console.log("=== TEMPO REQUEST START ===");
+    console.log("METHOD:", req.method);
+    console.log("URL:", req.originalUrl);
+    console.log("QUERY:", JSON.stringify(req.query, null, 2));
+    console.log("BODY:", JSON.stringify(req.body, null, 2));
+    console.log("HEADERS:", JSON.stringify(req.headers, null, 2));
+
     // Read account from ALL possible places
     let rawAccount =
       req.query?.account ||
-      req.query?.accountKey ||          // 🔥 add this
+      req.query?.accountKey ||
       req.headers["x-tempo-account"] ||
       req.body?.account?.name ||
       req.body?.account?.key ||
@@ -25,26 +33,27 @@ exports.getTasks = (req, res) => {
 
     console.log("RAW ACCOUNT:", rawAccount);
     console.log("FINAL ACCOUNT:", accountName);
-    console.log("QUERY:", req.query);
 
     // Tempo verification support
     const verificationToken = req.query.tempoVerificationToken;
     if (verificationToken) {
       res.setHeader("x-tempo-verification-token", verificationToken);
+      console.log("Verification token detected:", verificationToken);
     }
 
     let tasks;
 
-    // If no account → return all (for Verify / initial load)
     if (!accountName) {
       const allTasks = Object.values(mapping).flat();
 
-      // remove duplicates
       tasks = Array.from(
         new Map(allTasks.map(t => [t.value, t])).values()
       );
+
+      console.log("NO ACCOUNT → returning ALL tasks");
     } else {
       tasks = getTasksByAccount(accountName);
+      console.log("FILTERED TASKS for", accountName, ":", tasks);
     }
 
     const response = tasks.map(t => ({
@@ -52,20 +61,24 @@ exports.getTasks = (req, res) => {
       name: t.label
     }));
 
-    // 🔥 JSONP SUPPORT (CRITICAL FOR TEMPO)
+    console.log("FINAL RESPONSE:", response);
+
+    // JSONP support
     const callback = req.query.callback;
 
     if (callback) {
+      console.log("JSONP CALLBACK:", callback);
+      console.log("=== TEMPO REQUEST END ===");
       return res
         .status(200)
         .send(`${callback}(${JSON.stringify(response)})`);
     }
 
-    // fallback (for browser testing)
+    console.log("=== TEMPO REQUEST END ===");
     return res.status(200).json(response);
 
   } catch (error) {
-    console.error("Controller error:", error);
+    console.error("CONTROLLER ERROR:", error);
     return res.status(500).json([]);
   }
 };
