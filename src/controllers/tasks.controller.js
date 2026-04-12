@@ -3,87 +3,64 @@ const mapping = require("../config/mapping.json");
 
 exports.getTasks = (req, res) => {
   try {
-    console.log("\n========== TEMPO REQUEST START ==========");
+    console.log("\n================ TEMPO REQUEST ================");
 
-    // 🔍 BASIC REQUEST INFO
-    console.log("METHOD:", req.method);
+    const isVerification = !!req.query.tempoVerificationToken;
+    const isDropdownCall = !!req.query.callback;
+
+    let requestType = "UNKNOWN";
+    if (isVerification) requestType = "VERIFICATION";
+    else if (isDropdownCall) requestType = "DROPDOWN_DATA";
+
+    console.log("TYPE:", requestType);
     console.log("URL:", req.originalUrl);
+    console.log("QUERY:", req.query);
 
-    // 🔍 FULL INPUT
-    console.log("QUERY:", JSON.stringify(req.query, null, 2));
-    console.log("BODY:", JSON.stringify(req.body, null, 2));
-    console.log("HEADERS (partial):", {
-      "x-tempo-account": req.headers["x-tempo-account"],
-      "user-agent": req.headers["user-agent"]
-    });
-
-    // 🔍 EXTRACT ALL POSSIBLE ACCOUNT SOURCES
-    const sources = {
-      query_account: req.query?.account,
-      query_accountKey: req.query?.accountKey,
-      header_account: req.headers["x-tempo-account"],
-      body_account_name: req.body?.account?.name,
-      body_account_key: req.body?.account?.key,
-      body_accountKey: req.body?.accountKey,
-      body_account: req.body?.account
-    };
-
-    console.log("ACCOUNT SOURCES:", sources);
-
-    // 🔥 PICK VALUE (priority order)
+    // Extract account
     let rawAccount =
-      sources.query_accountKey ||
-      sources.query_account ||
-      sources.body_account_key ||
-      sources.body_accountKey ||
-      sources.body_account_name ||
-      sources.header_account ||
-      sources.body_account ||
+      req.query?.accountKey ||
+      req.query?.account ||
       "";
 
     rawAccount = decodeURIComponent(rawAccount || "");
 
-    console.log("RAW ACCOUNT (decoded):", rawAccount);
+    console.log("RAW_ACCOUNT:", rawAccount);
 
-    // 🔁 MAP PROJECT KEYS → FRIENDLY NAMES
+    // Map account
     let accountName = "";
 
     if (rawAccount === "PROJECT1") accountName = "R&D";
     else if (rawAccount === "PROJECT2") accountName = "SWM";
-    else if (rawAccount.includes("R&D")) accountName = "R&D";
-    else if (rawAccount.includes("SWM")) accountName = "SWM";
-    else accountName = rawAccount.split(" (")[0];
 
-    console.log("FINAL ACCOUNT NAME:", accountName);
+    console.log("FINAL_ACCOUNT:", accountName);
 
-    // 🔐 TEMPO VERIFICATION
-    const verificationToken = req.query.tempoVerificationToken;
-    if (verificationToken) {
-      res.setHeader("x-tempo-verification-token", verificationToken);
-      console.log("✔ Verification token handled:", verificationToken);
+    // Verification handling
+    if (isVerification) {
+      res.setHeader(
+        "x-tempo-verification-token",
+        req.query.tempoVerificationToken
+      );
+      console.log("VERIFICATION_HANDLED:", true);
     }
 
     let tasks;
 
-    // 🔁 DECISION LOGIC
     if (!accountName) {
-      console.log("⚠ No account detected → returning ALL tasks");
+      console.log("ACCOUNT_STATUS: NONE -> returning all tasks");
 
       const allTasks = Object.values(mapping).flat();
 
       tasks = Array.from(
         new Map(allTasks.map(t => [t.value, t])).values()
       );
-
     } else {
-      console.log(`✔ Filtering tasks for account: ${accountName}`);
+      console.log("ACCOUNT_STATUS: FOUND -> filtering");
 
       tasks = getTasksByAccount(accountName);
-
-      console.log("Filtered tasks:", tasks);
     }
 
-    // ✅ TEMPO RESPONSE FORMAT
+    console.log("TASK_COUNT:", tasks.length);
+
     const response = {
       values: tasks.map(t => ({
         key: t.value,
@@ -91,27 +68,23 @@ exports.getTasks = (req, res) => {
       }))
     };
 
-    console.log("FINAL RESPONSE PAYLOAD:", response);
+    // JSONP response
+    if (isDropdownCall) {
+      console.log("RESPONSE_TYPE: JSONP");
+      console.log("=============================================\n");
 
-    // 🔥 JSONP SUPPORT
-    const callback = req.query.callback;
-
-    if (callback) {
-      console.log("✔ JSONP callback detected:", callback);
-      console.log("========== TEMPO REQUEST END ==========\n");
-
-      return res
-        .status(200)
-        .send(`${callback}(${JSON.stringify(response)})`);
+      return res.send(
+        `${req.query.callback}(${JSON.stringify(response)})`
+      );
     }
 
-    console.log("✔ Standard JSON response");
-    console.log("========== TEMPO REQUEST END ==========\n");
+    console.log("RESPONSE_TYPE: JSON");
+    console.log("=============================================\n");
 
-    return res.status(200).json(response);
+    return res.json(response);
 
   } catch (error) {
-    console.error("❌ CONTROLLER ERROR:", error);
+    console.error("ERROR:", error);
     return res.status(500).json({ values: [] });
   }
 };
