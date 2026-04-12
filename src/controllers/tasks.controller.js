@@ -3,7 +3,7 @@ const mapping = require("../config/mapping.json");
 
 exports.getTasks = (req, res) => {
   try {
-    // 🔍 FULL DEBUG LOGS
+    // 🔍 DEBUG LOGS
     console.log("=== TEMPO REQUEST START ===");
     console.log("METHOD:", req.method);
     console.log("URL:", req.originalUrl);
@@ -11,7 +11,7 @@ exports.getTasks = (req, res) => {
     console.log("BODY:", JSON.stringify(req.body, null, 2));
     console.log("HEADERS:", JSON.stringify(req.headers, null, 2));
 
-    // Read account from ALL possible places
+    // 🔍 Extract account from all possible places
     let rawAccount =
       req.query?.account ||
       req.query?.accountKey ||
@@ -24,17 +24,16 @@ exports.getTasks = (req, res) => {
 
     rawAccount = decodeURIComponent(rawAccount || "");
 
-    // Map project keys → names
+    // 🔁 Map project keys → names
     if (rawAccount === "PROJECT1") rawAccount = "R&D";
     if (rawAccount === "PROJECT2") rawAccount = "SWM";
 
-    // Extract prefix if needed
     const accountName = rawAccount.split(" (")[0];
 
     console.log("RAW ACCOUNT:", rawAccount);
     console.log("FINAL ACCOUNT:", accountName);
 
-    // Tempo verification support
+    // 🔐 Tempo verification support
     const verificationToken = req.query.tempoVerificationToken;
     if (verificationToken) {
       res.setHeader("x-tempo-verification-token", verificationToken);
@@ -43,6 +42,7 @@ exports.getTasks = (req, res) => {
 
     let tasks;
 
+    // 🔁 No account → return all (for initial load / verify)
     if (!accountName) {
       const allTasks = Object.values(mapping).flat();
 
@@ -56,14 +56,17 @@ exports.getTasks = (req, res) => {
       console.log("FILTERED TASKS for", accountName, ":", tasks);
     }
 
-    const response = tasks.map(t => ({
-      id: t.value,
-      name: t.label
-    }));
+    // ✅ Tempo REQUIRED format
+    const response = {
+      values: tasks.map(t => ({
+        key: t.value,   // UUID
+        value: t.label  // Display label
+      }))
+    };
 
     console.log("FINAL RESPONSE:", response);
 
-    // JSONP support
+    // 🔥 JSONP support (MANDATORY for Tempo)
     const callback = req.query.callback;
 
     if (callback) {
@@ -74,11 +77,12 @@ exports.getTasks = (req, res) => {
         .send(`${callback}(${JSON.stringify(response)})`);
     }
 
+    // fallback (for browser testing)
     console.log("=== TEMPO REQUEST END ===");
     return res.status(200).json(response);
 
   } catch (error) {
     console.error("CONTROLLER ERROR:", error);
-    return res.status(500).json([]);
+    return res.status(500).json({ values: [] });
   }
 };
