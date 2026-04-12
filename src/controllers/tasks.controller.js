@@ -3,86 +3,115 @@ const mapping = require("../config/mapping.json");
 
 exports.getTasks = (req, res) => {
   try {
-    // 🔍 DEBUG LOGS
-    console.log("=== TEMPO REQUEST START ===");
+    console.log("\n========== TEMPO REQUEST START ==========");
+
+    // 🔍 BASIC REQUEST INFO
     console.log("METHOD:", req.method);
     console.log("URL:", req.originalUrl);
+
+    // 🔍 FULL INPUT
     console.log("QUERY:", JSON.stringify(req.query, null, 2));
     console.log("BODY:", JSON.stringify(req.body, null, 2));
-    console.log("HEADERS:", JSON.stringify(req.headers, null, 2));
+    console.log("HEADERS (partial):", {
+      "x-tempo-account": req.headers["x-tempo-account"],
+      "user-agent": req.headers["user-agent"]
+    });
 
-    // 🔍 Extract account from all possible places
+    // 🔍 EXTRACT ALL POSSIBLE ACCOUNT SOURCES
+    const sources = {
+      query_account: req.query?.account,
+      query_accountKey: req.query?.accountKey,
+      header_account: req.headers["x-tempo-account"],
+      body_account_name: req.body?.account?.name,
+      body_account_key: req.body?.account?.key,
+      body_accountKey: req.body?.accountKey,
+      body_account: req.body?.account
+    };
+
+    console.log("ACCOUNT SOURCES:", sources);
+
+    // 🔥 PICK VALUE (priority order)
     let rawAccount =
-      req.query?.account ||
-      req.query?.accountKey ||
-      req.headers["x-tempo-account"] ||
-      req.body?.account?.name ||
-      req.body?.account?.key ||
-      req.body?.accountKey ||
-      req.body?.account ||
+      sources.query_accountKey ||
+      sources.query_account ||
+      sources.body_account_key ||
+      sources.body_accountKey ||
+      sources.body_account_name ||
+      sources.header_account ||
+      sources.body_account ||
       "";
 
     rawAccount = decodeURIComponent(rawAccount || "");
 
-    // 🔁 Map project keys → names
-    if (rawAccount === "PROJECT1") rawAccount = "R&D";
-    if (rawAccount === "PROJECT2") rawAccount = "SWM";
+    console.log("RAW ACCOUNT (decoded):", rawAccount);
 
-    const accountName = rawAccount.split(" (")[0];
+    // 🔁 MAP PROJECT KEYS → FRIENDLY NAMES
+    let accountName = "";
 
-    console.log("RAW ACCOUNT:", rawAccount);
-    console.log("FINAL ACCOUNT:", accountName);
+    if (rawAccount === "PROJECT1") accountName = "R&D";
+    else if (rawAccount === "PROJECT2") accountName = "SWM";
+    else if (rawAccount.includes("R&D")) accountName = "R&D";
+    else if (rawAccount.includes("SWM")) accountName = "SWM";
+    else accountName = rawAccount.split(" (")[0];
 
-    // 🔐 Tempo verification support
+    console.log("FINAL ACCOUNT NAME:", accountName);
+
+    // 🔐 TEMPO VERIFICATION
     const verificationToken = req.query.tempoVerificationToken;
     if (verificationToken) {
       res.setHeader("x-tempo-verification-token", verificationToken);
-      console.log("Verification token detected:", verificationToken);
+      console.log("✔ Verification token handled:", verificationToken);
     }
 
     let tasks;
 
-    // 🔁 No account → return all (for initial load / verify)
+    // 🔁 DECISION LOGIC
     if (!accountName) {
+      console.log("⚠ No account detected → returning ALL tasks");
+
       const allTasks = Object.values(mapping).flat();
 
       tasks = Array.from(
         new Map(allTasks.map(t => [t.value, t])).values()
       );
 
-      console.log("NO ACCOUNT → returning ALL tasks");
     } else {
+      console.log(`✔ Filtering tasks for account: ${accountName}`);
+
       tasks = getTasksByAccount(accountName);
-      console.log("FILTERED TASKS for", accountName, ":", tasks);
+
+      console.log("Filtered tasks:", tasks);
     }
 
-    // ✅ Tempo REQUIRED format
+    // ✅ TEMPO RESPONSE FORMAT
     const response = {
       values: tasks.map(t => ({
-        key: t.value,   // UUID
-        value: t.label  // Display label
+        key: t.value,
+        value: t.label
       }))
     };
 
-    console.log("FINAL RESPONSE:", response);
+    console.log("FINAL RESPONSE PAYLOAD:", response);
 
-    // 🔥 JSONP support (MANDATORY for Tempo)
+    // 🔥 JSONP SUPPORT
     const callback = req.query.callback;
 
     if (callback) {
-      console.log("JSONP CALLBACK:", callback);
-      console.log("=== TEMPO REQUEST END ===");
+      console.log("✔ JSONP callback detected:", callback);
+      console.log("========== TEMPO REQUEST END ==========\n");
+
       return res
         .status(200)
         .send(`${callback}(${JSON.stringify(response)})`);
     }
 
-    // fallback (for browser testing)
-    console.log("=== TEMPO REQUEST END ===");
+    console.log("✔ Standard JSON response");
+    console.log("========== TEMPO REQUEST END ==========\n");
+
     return res.status(200).json(response);
 
   } catch (error) {
-    console.error("CONTROLLER ERROR:", error);
+    console.error("❌ CONTROLLER ERROR:", error);
     return res.status(500).json({ values: [] });
   }
 };
