@@ -3,36 +3,39 @@ const mapping = require("../config/mapping.json");
 
 exports.getTasks = (req, res) => {
   try {
-    // 🔍 Read account from multiple possible places
     const accountName = decodeURIComponent(
-      req.query?.account ||
+      req.query.account ||
       req.headers["x-tempo-account"] ||
       req.body?.account?.name ||
       req.body?.account ||
       ""
     );
 
+    // HANDLE VERIFICATION TOKEN
+    const verificationToken = req.query.tempoVerificationToken;
+    if (verificationToken) {
+      res.setHeader("x-tempo-verification-token", verificationToken);
+    }
+
     let tasks;
 
-    // 🔁 If no account (Tempo Verify), return ALL tasks
     if (!accountName) {
       tasks = Object.values(mapping).flat();
     } else {
       tasks = getTasksByAccount(accountName);
     }
 
-    const response = tasks.map(t => ({
-      id: t.value,
-      name: t.label
-    }));
-
-    // ✅ Required headers (helps Tempo verification)
     res.setHeader("Content-Type", "application/json");
 
-    return res.status(200).json(response);
+    return res.status(200).json(
+      tasks.map(t => ({
+        id: t.value,
+        name: t.label
+      }))
+    );
 
   } catch (error) {
-    console.error("Controller error:", error);
+    console.error(error);
     return res.status(500).json([]);
   }
 };
