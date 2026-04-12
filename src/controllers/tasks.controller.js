@@ -14,19 +14,32 @@ exports.getTasks = (req, res) => {
 
     console.log("TYPE:", requestType);
     console.log("URL:", req.originalUrl);
+    console.log("PATH:", req.path);
     console.log("QUERY:", req.query);
+    console.log("PARAMS:", req.params);
 
-    // Extract account
+    // 🔥 Extract account from ALL possible sources
     let rawAccount =
       req.query?.accountKey ||
       req.query?.account ||
+      req.params?.accountKey ||
+      req.params?.account ||
       "";
+
+    // 🔥 Fallback: extract from path manually if needed
+    if (!rawAccount) {
+      const parts = req.path.split("/").filter(Boolean);
+      // Example: /tempo/tasks/PROJECT2 → ["tempo","tasks","PROJECT2"]
+      if (parts.length >= 3) {
+        rawAccount = parts[2];
+      }
+    }
 
     rawAccount = decodeURIComponent(rawAccount || "");
 
     console.log("RAW_ACCOUNT:", rawAccount);
 
-    // Map account
+    // 🔁 Map account key → name
     let accountName = "";
 
     if (rawAccount === "PROJECT1") accountName = "R&D";
@@ -34,7 +47,7 @@ exports.getTasks = (req, res) => {
 
     console.log("FINAL_ACCOUNT:", accountName);
 
-    // Verification handling
+    // 🔐 Verification handling
     if (isVerification) {
       res.setHeader(
         "x-tempo-verification-token",
@@ -68,7 +81,7 @@ exports.getTasks = (req, res) => {
       }))
     };
 
-    // JSONP response
+    // 🔥 JSONP response (Tempo requirement)
     if (isDropdownCall) {
       console.log("RESPONSE_TYPE: JSONP");
       console.log("=============================================\n");
