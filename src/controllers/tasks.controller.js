@@ -1,4 +1,8 @@
-const mapping = require("../config/mapping.json");
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const mappingFile = fs.readFileSync("./src/config/mapping.yaml", "utf8");
+const mapping = yaml.load(mappingFile);
 
 exports.getTasks = (req, res) => {
   try {
@@ -48,7 +52,7 @@ exports.getTasks = (req, res) => {
     // Correct Tempo format
     const response = {
       values: tasks.map(t => ({
-        key: t.value,   // UUID
+        key: t.value,   // stable key
         value: t.label  // display
       }))
     };
