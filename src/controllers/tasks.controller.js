@@ -11,12 +11,11 @@ exports.getTasks = (req, res) => {
     console.log("URL:", req.originalUrl);
     console.log("QUERY:", req.query);
 
-    // ✅ Only thing you actually need
     let rawAccount = decodeURIComponent(req.query?.accountKey || "");
 
     console.log("RAW_ACCOUNT:", rawAccount);
 
-    // ✅ Map accountKey → mapping key
+    // Map accountKey → mapping key
     let accountName = "";
 
     if (rawAccount === "PROJECT1") accountName = "R&D";
@@ -24,7 +23,7 @@ exports.getTasks = (req, res) => {
 
     console.log("FINAL_ACCOUNT:", accountName);
 
-    // 🔐 Verification
+    // Verification
     if (isVerification) {
       res.setHeader(
         "x-tempo-verification-token",
@@ -33,7 +32,7 @@ exports.getTasks = (req, res) => {
       console.log("VERIFICATION_HANDLED:", true);
     }
 
-    // ✅ Get tasks directly from mapping
+    // Get tasks directly from mapping
     let tasks = [];
 
     if (accountName && mapping[accountName]) {
@@ -46,7 +45,7 @@ exports.getTasks = (req, res) => {
 
     console.log("TASK_COUNT:", tasks.length);
 
-    // ✅ Correct Tempo format
+    // Correct Tempo format
     const response = {
       values: tasks.map(t => ({
         key: t.value,   // UUID
@@ -54,7 +53,7 @@ exports.getTasks = (req, res) => {
       }))
     };
 
-    // 🔥 JSONP (required by Tempo)
+    // JSONP (required by Tempo)
     if (isDropdownCall) {
       console.log("RESPONSE_TYPE: JSONP");
       console.log("=============================================\n");

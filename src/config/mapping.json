@@ -2,21 +2,21 @@
   "R&D": [
     {
       "label": "Agile Ceremonies",
-      "value": "d7215ab2-9b10-4e33-93bf-18f9a80d0232"
+      "value": "agile"
     },
     {
       "label": "Product Development",
-      "value": "6da68477-279c-4974-8623-ab08ef95d14d"
+      "value": "product_dev"
     }
   ],
   "SWM": [
     {
       "label": "Bug Fix",
-      "value": "53a29f58-6096-4d67-acc1-1239a92e61e6"
+      "value": "bug_fix"
     },
     {
       "label": "Support Work",
-      "value": "5d2160de-4e03-4e48-a3b3-671c3e941a39"
+      "value": "support"
     }
   ]
 }
