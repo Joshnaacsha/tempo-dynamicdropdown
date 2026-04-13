@@ -15,7 +15,7 @@ exports.getTasks = (req, res) => {
     console.log("URL:", req.originalUrl);
     console.log("QUERY:", req.query);
 
-    let rawAccount = decodeURIComponent(req.query?.account || "");
+    let rawAccount = decodeURIComponent(req.query?.accountKey || "");
 
     console.log("RAW_ACCOUNT:", rawAccount);
 
