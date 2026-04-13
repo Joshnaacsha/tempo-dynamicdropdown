@@ -2,7 +2,7 @@ accountMapping:
   RD: RD
   SWM: SWM
 
-R&D:
+RD:
   - label: Agile Ceremonies
     value: agile
   - label: Product Development
