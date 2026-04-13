@@ -19,12 +19,9 @@ exports.getTasks = (req, res) => {
 
     console.log("RAW_ACCOUNT:", rawAccount);
 
-    // Map accountKey → mapping key
-    let accountName = "";
+    // Map accountKey → mapping key using config
     const upperAccount = rawAccount.toUpperCase();
-
-    if (upperAccount === "PROJECT1" || upperAccount === "R&D") accountName = "R&D";
-    else if (upperAccount === "PROJECT2" || upperAccount === "SWM") accountName = "SWM";
+    let accountName = mapping.accountMapping[upperAccount] || "";
 
     console.log("FINAL_ACCOUNT:", accountName);
 
