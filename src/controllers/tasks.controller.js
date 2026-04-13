@@ -1,7 +1,8 @@
 const fs = require("fs");
+const path = require("path");
 const yaml = require("js-yaml");
 
-const mappingFile = fs.readFileSync("./src/config/mapping.yaml", "utf8");
+const mappingFile = fs.readFileSync(path.join(__dirname, "../config/mapping.yaml"), "utf8");
 const mapping = yaml.load(mappingFile);
 
 exports.getTasks = (req, res) => {
