@@ -11,20 +11,20 @@ exports.getTasks = (req, res) => {
 
     const isVerification = !!req.query.tempoVerificationToken;
     const isDropdownCall = !!req.query.callback;
-
     console.log("TYPE:", isVerification ? "VERIFICATION" : "DROPDOWN_DATA");
     console.log("URL:", req.originalUrl);
     console.log("QUERY:", req.query);
 
-    let rawAccount = decodeURIComponent(req.query?.accountKey || "");
+    let rawAccount = decodeURIComponent(req.query?.account || "");
 
     console.log("RAW_ACCOUNT:", rawAccount);
 
     // Map accountKey → mapping key
     let accountName = "";
+    const upperAccount = rawAccount.toUpperCase();
 
-    if (rawAccount === "PROJECT1") accountName = "R&D";
-    else if (rawAccount === "PROJECT2") accountName = "SWM";
+    if (upperAccount === "PROJECT1" || upperAccount === "R&D") accountName = "R&D";
+    else if (upperAccount === "PROJECT2" || upperAccount === "SWM") accountName = "SWM";
 
     console.log("FINAL_ACCOUNT:", accountName);
 
